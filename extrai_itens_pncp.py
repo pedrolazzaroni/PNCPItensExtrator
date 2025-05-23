@@ -70,27 +70,60 @@ def extrai_itens_pncp(url):
             # Verifica paginação pelo texto do footer
             try:
                 pag_info = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
-                # Exemplo: "1-5 de 160 itens"
                 match = re.search(r'(\d+)-(\d+) de (\d+) itens', pag_info)
                 if match:
                     first_item, last_item, total_itens = map(int, match.groups())
                     print(f"Página: exibindo {first_item}-{last_item} de {total_itens} itens")
                     if last_item >= total_itens:
-                        break  # Última página
+                        break  # Última página                    # Se ainda há mais itens, tenta clicar no botão próxima página
+                    try:
+                        # Primeiro tenta encontrar o botão de próxima página
+                        next_btn = driver.find_element(By.XPATH, "//button[@id='btn-next-page']")
+                        
+                        # Verifica se o botão está habilitado
+                        is_disabled = next_btn.get_attribute('disabled')
+                        if is_disabled:
+                            print("Botão próxima página está desabilitado, mas deveria haver mais itens.")
+                            break
+                        
+                        print(f"Tentando clicar no botão próxima página...")
+                        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn)
+                        time.sleep(1)
+                        
+                        # Salva o valor do último item antes de clicar
+                        last_item_before = last_item
+                        
+                        # Clica usando JavaScript para maior confiabilidade
+                        driver.execute_script("arguments[0].click();", next_btn)
+                        
+                        # Aguarda até que o número do último item exibido mude
+                        page_changed = False
+                        for attempt in range(15):
+                            time.sleep(1)
+                            try:
+                                pag_info_new = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
+                                match_new = re.search(r'(\d+)-(\d+) de (\d+) itens', pag_info_new)
+                                if match_new:
+                                    _, last_item_new, _ = map(int, match_new.groups())
+                                    if last_item_new != last_item_before:
+                                        print(f"Página avançou para: {pag_info_new}")
+                                        page_changed = True
+                                        break
+                            except:
+                                continue
+                        
+                        if not page_changed:
+                            print("A página não avançou após clicar no botão. Encerrando.")
+                            break
+                            
+                    except Exception as e:
+                        print(f"Erro ao tentar clicar na próxima página: {e}")
+                        break
                 else:
                     print("Não foi possível interpretar a paginação, encerrando.")
                     break
             except Exception as e:
                 print(f"Erro ao ler paginação: {e}")
-                break
-            # Tenta clicar no botão próxima página
-            try:
-                next_btn = driver.find_element(By.XPATH, "//button[@id='btn-next-page' and not(@disabled)]")
-                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn)
-                next_btn.click()
-                time.sleep(2)
-            except Exception as e:
-                print("Não há próxima página ou erro ao clicar.")
                 break
         driver.quit()
         return itens
