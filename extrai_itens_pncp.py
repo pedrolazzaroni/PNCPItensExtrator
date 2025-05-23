@@ -26,9 +26,9 @@ def extrai_itens_pncp(url):
     chrome_options.add_argument('--disable-dev-shm-usage')
     driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
+    itens = []
     try:
         print("Procurando aba 'Itens'...")
-        # Tenta encontrar o botão da aba Itens, ativa ou não
         try:
             itens_tab = driver.find_element(By.XPATH, "//li[contains(@class, 'tab-item')]//span[contains(text(), 'Itens')]/ancestor::button")
             print("Botão da aba 'Itens' encontrado. Clicando...")
@@ -41,22 +41,57 @@ def extrai_itens_pncp(url):
             EC.presence_of_element_located((By.XPATH, "//ngx-datatable"))
         )
         print("Tabela de itens encontrada.")
-        rows = driver.find_elements(By.XPATH, "//ngx-datatable//datatable-body-row")
-        print(f"Total de linhas encontradas: {len(rows)}")
-        itens = []
-        for row in rows[:10]:
-            cells = row.find_elements(By.XPATH, ".//datatable-body-cell")
-            if len(cells) < 6:
-                continue
-            item = {
-                'numero': cells[0].text.strip(),
-                'descricao': cells[1].text.strip(),
-                'quantidade': cells[2].text.strip(),
-                'valor_unitario': cells[3].text.strip(),
-                'valor_total': cells[4].text.strip()
-            }
-            print(f"Item encontrado: {item}")
-            itens.append(item)
+        # Descobre o total de itens
+        pag_info = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
+        total_itens = int(re.search(r'de (\d+) itens', pag_info).group(1))
+        print(f"Total de itens na tabela: {total_itens}")
+        itens_coletados = 0
+        while True:
+            rows = driver.find_elements(By.XPATH, "//ngx-datatable//datatable-body-row")
+            print(f"Coletando página, linhas encontradas: {len(rows)}")
+            for row in rows:
+                cells = row.find_elements(By.XPATH, ".//datatable-body-cell")
+                if len(cells) < 6:
+                    continue
+                item = {
+                    'numero': cells[0].text.strip(),
+                    'descricao': cells[1].text.strip(),
+                    'quantidade': cells[2].text.strip(),
+                    'valor_unitario': cells[3].text.strip(),
+                    'valor_total': cells[4].text.strip()
+                }
+                # Filtro para evitar itens vazios
+                if not any([item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total']]):
+                    continue  # pula itens totalmente vazios
+                if not item['descricao']:
+                    continue  # pula itens sem descrição
+                print(f"Item encontrado: {item}")
+                itens.append(item)
+            # Verifica paginação pelo texto do footer
+            try:
+                pag_info = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
+                # Exemplo: "1-5 de 160 itens"
+                match = re.search(r'(\d+)-(\d+) de (\d+) itens', pag_info)
+                if match:
+                    first_item, last_item, total_itens = map(int, match.groups())
+                    print(f"Página: exibindo {first_item}-{last_item} de {total_itens} itens")
+                    if last_item >= total_itens:
+                        break  # Última página
+                else:
+                    print("Não foi possível interpretar a paginação, encerrando.")
+                    break
+            except Exception as e:
+                print(f"Erro ao ler paginação: {e}")
+                break
+            # Tenta clicar no botão próxima página
+            try:
+                next_btn = driver.find_element(By.XPATH, "//button[@id='btn-next-page' and not(@disabled)]")
+                driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", next_btn)
+                next_btn.click()
+                time.sleep(2)
+            except Exception as e:
+                print("Não há próxima página ou erro ao clicar.")
+                break
         driver.quit()
         return itens
     except Exception as e:
