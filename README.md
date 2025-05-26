@@ -451,7 +451,7 @@ Para dúvidas, sugestões ou reportar bugs:
 
 **🎯 Desenvolvido para democratizar o acesso a dados públicos**
 
-![GitHub stars](https://img.shields.io/github/stars/usuario/PNCPItensExtractor?style=social)
-![GitHub forks](https://img.shields.io/github/forks/usuario/PNCPItensExtractor?style=social)
+![GitHub stars](https://img.shields.io/github/stars/pedrolazzaroni/PNCPItensExtractor?style=social)
+![GitHub forks](https://img.shields.io/github/forks/pedrolazzaroni/PNCPItensExtractor?style=social)
 
 </div>
