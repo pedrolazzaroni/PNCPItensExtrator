@@ -133,9 +133,20 @@ def extrai_itens_pncp(url):
         return []
 
 def main():
+    # Pergunta ao usuário a partir de qual data ele quer buscar
+    data_inicio = input("Digite a data de inclusão inicial (formato YYYY-MM-DD, ex: 2024-05-25): ").strip()
+    
+    # Valida o formato da data
+    try:
+        from datetime import datetime
+        datetime.strptime(data_inicio, '%Y-%m-%d')
+    except ValueError:
+        print("Formato de data inválido! Use o formato YYYY-MM-DD")
+        return
+    
     conn = pymysql.connect(host='localhost', user='root', password='', db='ataspncp', charset='utf8mb4')
     cur = conn.cursor()
-    # Cria a tabela de itens se não existir
+    # Cria a tabela de itens se não existir com todos os campos da ata
     cur.execute('''CREATE TABLE IF NOT EXISTS atas_itens_pncp (
         id INT AUTO_INCREMENT PRIMARY KEY,
         ata_id INT,
@@ -143,23 +154,70 @@ def main():
         descricao TEXT,
         quantidade VARCHAR(20),
         valor_unitario VARCHAR(50),
-        valor_total VARCHAR(50)
+        valor_total VARCHAR(50),
+        numeroControlePNCPAta VARCHAR(100),
+        numeroAtaRegistroPreco VARCHAR(100),
+        anoAta VARCHAR(10),
+        numeroControlePNCPCompra VARCHAR(100),
+        cancelado BOOLEAN,
+        dataCancelamento DATETIME,
+        dataAssinatura DATETIME,
+        vigenciaInicio DATETIME,
+        vigenciaFim DATETIME,
+        dataPublicacaoPncp DATETIME,
+        dataInclusao DATETIME,
+        dataAtualizacao DATETIME,
+        dataAtualizacaoGlobal DATETIME,
+        usuario VARCHAR(100),
+        objetoContratacao TEXT,
+        cnpjOrgao VARCHAR(20),
+        nomeOrgao VARCHAR(255),
+        cnpjOrgaoSubrogado VARCHAR(20),
+        nomeOrgaoSubrogado VARCHAR(255),
+        codigoUnidadeOrgao VARCHAR(50),
+        nomeUnidadeOrgao VARCHAR(255),
+        codigoUnidadeOrgaoSubrogado VARCHAR(50),
+        nomeUnidadeOrgaoSubrogado VARCHAR(255)
     )''')
-    # Seleciona os 10 primeiros registros da tabela atas_pncp
-    cur.execute("SELECT id, numeroControlePNCPCompra FROM atas_pncp LIMIT 10")
+    
+    # Seleciona apenas as atas com dataInclusao posterior à data informada
+    print(f"Buscando atas com dataInclusao posterior a {data_inicio}...")
+    cur.execute("""SELECT id, numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra, 
+                   cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
+                   dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
+                   cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
+                   nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado 
+                   FROM atas_pncp WHERE dataInclusao > %s ORDER BY dataInclusao DESC""", (data_inicio,))
     atas = cur.fetchall()
     for ata in atas:
-        ata_id, numero_controle = ata
-        url = get_pncp_url(numero_controle)
+        (ata_id, numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra, 
+         cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
+         dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
+         cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
+         nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado) = ata
+        
+        url = get_pncp_url(numeroControlePNCPCompra)
         if not url:
-            print(f"Formato inválido: {numero_controle}")
+            print(f"Formato inválido: {numeroControlePNCPCompra}")
             continue
         print(f"Extraindo itens de {url}")
         itens = extrai_itens_pncp(url)
         for item in itens:
             print(f"Item extraído: Número: {item['numero']}, Descrição: {item['descricao']}, Quantidade: {item['quantidade']}, Valor Unitário: {item['valor_unitario']}, Valor Total: {item['valor_total']}")
-            cur.execute('''INSERT INTO atas_itens_pncp (ata_id, numero, descricao, quantidade, valor_unitario, valor_total) VALUES (%s, %s, %s, %s, %s, %s)''',
-                (ata_id, item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total']))
+            cur.execute('''INSERT INTO atas_itens_pncp (
+                ata_id, numero, descricao, quantidade, valor_unitario, valor_total,
+                numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra,
+                cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
+                dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
+                cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
+                nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                (ata_id, item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total'],
+                 numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra,
+                 cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
+                 dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
+                 cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
+                 nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado))
         conn.commit()
     cur.close()
     conn.close()
