@@ -36,19 +36,22 @@ def extrai_itens_pncp(url):
             time.sleep(2)
         except Exception as e:
             print("Botão da aba 'Itens' não clicável ou já ativa.")
+        
         print("Esperando tabela de itens aparecer...")
         WebDriverWait(driver, 15).until(
             EC.presence_of_element_located((By.XPATH, "//ngx-datatable"))
         )
         print("Tabela de itens encontrada.")
+        
         # Descobre o total de itens
         pag_info = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
         total_itens = int(re.search(r'de (\d+) itens', pag_info).group(1))
         print(f"Total de itens na tabela: {total_itens}")
-        itens_coletados = 0
+        
         while True:
             rows = driver.find_elements(By.XPATH, "//ngx-datatable//datatable-body-row")
             print(f"Coletando página, linhas encontradas: {len(rows)}")
+            
             for row in rows:
                 cells = row.find_elements(By.XPATH, ".//datatable-body-cell")
                 if len(cells) < 6:
@@ -67,6 +70,7 @@ def extrai_itens_pncp(url):
                     continue  # pula itens sem descrição
                 print(f"Item encontrado: {item}")
                 itens.append(item)
+            
             # Verifica paginação pelo texto do footer
             try:
                 pag_info = driver.find_element(By.XPATH, "//div[contains(@class, 'pagination-information')]").text
@@ -75,7 +79,9 @@ def extrai_itens_pncp(url):
                     first_item, last_item, total_itens = map(int, match.groups())
                     print(f"Página: exibindo {first_item}-{last_item} de {total_itens} itens")
                     if last_item >= total_itens:
-                        break  # Última página                    # Se ainda há mais itens, tenta clicar no botão próxima página
+                        break  # Última página
+                    
+                    # Se ainda há mais itens, tenta clicar no botão próxima página
                     try:
                         # Primeiro tenta encontrar o botão de próxima página
                         next_btn = driver.find_element(By.XPATH, "//button[@id='btn-next-page']")
@@ -125,6 +131,7 @@ def extrai_itens_pncp(url):
             except Exception as e:
                 print(f"Erro ao ler paginação: {e}")
                 break
+        
         driver.quit()
         return itens
     except Exception as e:
@@ -146,6 +153,7 @@ def main():
     
     conn = pymysql.connect(host='localhost', user='root', password='', db='ataspncp', charset='utf8mb4')
     cur = conn.cursor()
+    
     # Cria a tabela de itens se não existir com todos os campos da ata
     cur.execute('''CREATE TABLE IF NOT EXISTS atas_itens_pncp (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -181,14 +189,19 @@ def main():
     )''')
     
     # Seleciona apenas as atas com dataInclusao posterior à data informada
-    print(f"Buscando atas com dataInclusao posterior a {data_inicio}...")
+    # Converte a data para incluir o horário completo (23:59:59) para pegar tudo do dia seguinte em diante
+    data_inicio_completa = f"{data_inicio} 23:59:59"
+    print(f"Buscando atas com dataInclusao posterior a {data_inicio} (depois das 23:59:59)...")
+    
     cur.execute("""SELECT id, numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra, 
                    cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
                    dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
                    cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
                    nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado 
-                   FROM atas_pncp WHERE dataInclusao > %s ORDER BY dataInclusao DESC""", (data_inicio,))
+                   FROM atas_pncp WHERE dataInclusao > %s ORDER BY dataInclusao ASC""", (data_inicio_completa,))
+    
     atas = cur.fetchall()
+    
     for ata in atas:
         (ata_id, numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra, 
          cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
@@ -200,8 +213,10 @@ def main():
         if not url:
             print(f"Formato inválido: {numeroControlePNCPCompra}")
             continue
+            
         print(f"Extraindo itens de {url}")
         itens = extrai_itens_pncp(url)
+        
         for item in itens:
             print(f"Item extraído: Número: {item['numero']}, Descrição: {item['descricao']}, Quantidade: {item['quantidade']}, Valor Unitário: {item['valor_unitario']}, Valor Total: {item['valor_total']}")
             cur.execute('''INSERT INTO atas_itens_pncp (
@@ -218,7 +233,9 @@ def main():
                  dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
                  cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
                  nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado))
+        
         conn.commit()
+    
     cur.close()
     conn.close()
 
