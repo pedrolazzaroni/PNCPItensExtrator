@@ -66,7 +66,7 @@ PNCPItensExtrator/
 ├── 📄 ExtratorV1.py             # 📚 Versão básica (apenas primeira página)
 ├── 📄 ExtratorV2.py             # 🔄 Versão com paginação completa
 ├── 📄 ExtratorV3.py             # ⚡ Versão atual - Extrator com filtro por data
-├── 🌐 index.php                  # 💻 Interface web para visualização
+├── 🌐 index.php                 # 💻 Interface web para visualização
 ├── 📖 README.md                 # 📋 Documentação completa
 └── 🗂️ docs/                     # 📚 Documentação adicional
 ```
