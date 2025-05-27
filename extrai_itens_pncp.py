@@ -18,6 +18,130 @@ def get_pncp_url(numero_controle):
     cnpj, edital, ano = match.groups()
     return f"https://pncp.gov.br/app/editais/{cnpj}/{ano}/{int(edital)}"
 
+def extrair_uf_pncp(driver):
+    """
+    Extrai a UF (Unidade Federativa) da página do PNCP
+    """
+    try:
+        # Aguarda mais tempo para garantir que a página carregou completamente
+        time.sleep(8)
+        
+        print("Iniciando extração da UF...")
+        
+        # Método 1: Busca todos os spans com classe ng-star-inserted que contêm barra
+        try:
+            print("Método 1: Procurando spans com ng-star-inserted que contêm barra...")
+            spans = driver.find_elements(By.XPATH, "//span[contains(@class, 'ng-star-inserted') and contains(text(), '/')]")
+            print(f"Encontrados {len(spans)} spans com ng-star-inserted e barra")
+            
+            for i, span in enumerate(spans):
+                texto = span.text.strip()
+                print(f"Span {i+1}: '{texto}'")
+                
+                if '/' in texto:
+                    partes = texto.split('/')
+                    if len(partes) >= 2:
+                        possivel_uf = partes[-1].strip()
+                        # Verifica se parece com UF (2 caracteres, letras)
+                        if len(possivel_uf) == 2 and possivel_uf.isalpha():
+                            print(f"UF encontrada pelo Método 1: '{possivel_uf}'")
+                            return possivel_uf.upper()
+        except Exception as e1:
+            print(f"Método 1 falhou: {e1}")
+          # Método 2: Busca especificamente por texto que contém "Local:" no HTML
+        try:
+            print("Método 2: Procurando elementos que contêm 'Local:'...")
+            elements = driver.find_elements(By.XPATH, "//*[contains(text(), 'Local:')]")
+            print(f"Encontrados {len(elements)} elementos com 'Local:'")
+            
+            for i, element in enumerate(elements):
+                texto_completo = element.text.strip()
+                print(f"Elemento {i+1}: '{texto_completo}'")
+                
+                if '/' in texto_completo:
+                    # Extrai a parte após "Local:" 
+                    if 'Local:' in texto_completo:
+                        local_part = texto_completo.split('Local:')[-1].strip()
+                        if '/' in local_part:
+                            uf = local_part.split('/')[-1].strip()
+                            if len(uf) == 2 and uf.isalpha():
+                                print(f"UF encontrada pelo Método 2: '{uf}'")
+                                return uf.upper()
+        except Exception as e2:
+            print(f"Método 2 falhou: {e2}")
+        
+        # Método 2.5: Debug - Lista TODOS os spans para entender o que está na página
+        try:
+            print("Método 2.5 (Debug): Listando TODOS os spans da página...")
+            all_spans = driver.find_elements(By.XPATH, "//span")
+            print(f"Total de spans encontrados: {len(all_spans)}")
+            
+            for i, span in enumerate(all_spans[:20]):  # Mostra apenas os primeiros 20
+                texto = span.text.strip()
+                classe = span.get_attribute('class')
+                if texto:  # Só mostra spans com texto
+                    print(f"Span {i+1}: Classe='{classe}' | Texto='{texto}'")
+                    
+                    # Se encontrar algum span com barra, tenta extrair UF
+                    if '/' in texto:
+                        partes = texto.split('/')
+                        if len(partes) >= 2:
+                            possivel_uf = partes[-1].strip()
+                            if len(possivel_uf) == 2 and possivel_uf.isalpha():
+                                print(f"*** UF encontrada no debug: '{possivel_uf}' ***")
+                                return possivel_uf.upper()
+        except Exception as e25:
+            print(f"Método 2.5 falhou: {e25}")
+        
+        # Método 3: Busca por todos os spans que contêm barra (mais genérico)
+        try:
+            print("Método 3: Procurando todos os spans com barra...")
+            spans = driver.find_elements(By.XPATH, "//span[contains(text(), '/')]")
+            print(f"Encontrados {len(spans)} spans com barra")
+            
+            for i, span in enumerate(spans):
+                texto = span.text.strip()
+                print(f"Span {i+1}: '{texto}'")
+                
+                if '/' in texto:
+                    partes = texto.split('/')
+                    if len(partes) >= 2:
+                        possivel_uf = partes[-1].strip()
+                        # Verifica se parece com UF (2 caracteres, letras)
+                        if len(possivel_uf) == 2 and possivel_uf.isalpha():
+                            print(f"UF encontrada pelo Método 3: '{possivel_uf}'")
+                            return possivel_uf.upper()
+        except Exception as e3:
+            print(f"Método 3 falhou: {e3}")
+        
+        # Método 4: Análise por regex no código fonte da página
+        try:
+            print("Método 4: Analisando código fonte da página...")
+            page_source = driver.page_source
+            
+            # Procura por padrão: cidade/UF onde UF são 2 letras maiúsculas
+            padrao = r'(\w+)/([A-Z]{2})\b'
+            matches = re.findall(padrao, page_source)
+            
+            # Lista de UFs válidas do Brasil
+            ufs_validas = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO']
+            
+            print(f"Encontrados {len(matches)} padrões cidade/UF")
+            for cidade, uf in matches:
+                print(f"Padrão: {cidade}/{uf}")
+                if uf in ufs_validas:
+                    print(f"UF válida encontrada pelo Método 4: '{uf}'")
+                    return uf
+        except Exception as e4:
+            print(f"Método 4 falhou: {e4}")
+        
+        print("Todos os métodos falharam ao extrair a UF")
+        return None
+            
+    except Exception as e:
+        print(f"Erro geral ao extrair UF: {e}")
+        return None
+
 def extrai_itens_pncp(url):
     print(f"Acessando URL: {url}")
     chrome_options = Options()
@@ -27,7 +151,12 @@ def extrai_itens_pncp(url):
     driver = webdriver.Chrome(options=chrome_options)
     driver.get(url)
     itens = []
+    uf = None
+    
     try:
+        # Primeiro extrai a UF da página
+        uf = extrair_uf_pncp(driver)
+        
         print("Procurando aba 'Itens'...")
         try:
             itens_tab = driver.find_element(By.XPATH, "//li[contains(@class, 'tab-item')]//span[contains(text(), 'Itens')]/ancestor::button")
@@ -61,7 +190,8 @@ def extrai_itens_pncp(url):
                     'descricao': cells[1].text.strip(),
                     'quantidade': cells[2].text.strip(),
                     'valor_unitario': cells[3].text.strip(),
-                    'valor_total': cells[4].text.strip()
+                    'valor_total': cells[4].text.strip(),
+                    'uf': uf  # Adiciona a UF ao item
                 }
                 # Filtro para evitar itens vazios
                 if not any([item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total']]):
@@ -153,8 +283,7 @@ def main():
     
     conn = pymysql.connect(host='localhost', user='root', password='', db='ataspncp', charset='utf8mb4')
     cur = conn.cursor()
-    
-    # Cria a tabela de itens se não existir com todos os campos da ata
+      # Cria a tabela de itens se não existir com todos os campos da ata
     cur.execute('''CREATE TABLE IF NOT EXISTS atas_itens_pncp (
         id INT AUTO_INCREMENT PRIMARY KEY,
         ata_id INT,
@@ -163,6 +292,7 @@ def main():
         quantidade VARCHAR(20),
         valor_unitario VARCHAR(50),
         valor_total VARCHAR(50),
+        uf VARCHAR(2),
         numeroControlePNCPAta VARCHAR(100),
         numeroAtaRegistroPreco VARCHAR(100),
         anoAta VARCHAR(10),
@@ -216,18 +346,17 @@ def main():
             
         print(f"Extraindo itens de {url}")
         itens = extrai_itens_pncp(url)
-        
         for item in itens:
-            print(f"Item extraído: Número: {item['numero']}, Descrição: {item['descricao']}, Quantidade: {item['quantidade']}, Valor Unitário: {item['valor_unitario']}, Valor Total: {item['valor_total']}")
+            print(f"Item extraído: Número: {item['numero']}, Descrição: {item['descricao']}, Quantidade: {item['quantidade']}, Valor Unitário: {item['valor_unitario']}, Valor Total: {item['valor_total']}, UF: {item['uf']}")
             cur.execute('''INSERT INTO atas_itens_pncp (
-                ata_id, numero, descricao, quantidade, valor_unitario, valor_total,
+                ata_id, numero, descricao, quantidade, valor_unitario, valor_total, uf,
                 numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra,
                 cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
                 dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
                 cnpjOrgao, nomeOrgao, cnpjOrgaoSubrogado, nomeOrgaoSubrogado, codigoUnidadeOrgao,
                 nomeUnidadeOrgao, codigoUnidadeOrgaoSubrogado, nomeUnidadeOrgaoSubrogado
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
-                (ata_id, item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total'],
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)''',
+                (ata_id, item['numero'], item['descricao'], item['quantidade'], item['valor_unitario'], item['valor_total'], item['uf'],
                  numeroControlePNCPAta, numeroAtaRegistroPreco, anoAta, numeroControlePNCPCompra,
                  cancelado, dataCancelamento, dataAssinatura, vigenciaInicio, vigenciaFim, dataPublicacaoPncp,
                  dataInclusao, dataAtualizacao, dataAtualizacaoGlobal, usuario, objetoContratacao,
