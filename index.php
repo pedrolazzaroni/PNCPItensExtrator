@@ -23,7 +23,7 @@ $whereClause = '';
 $params = [];
 
 if (!empty($search)) {
-    $whereClause = "WHERE descricao LIKE :search OR numero LIKE :search OR nomeOrgao LIKE :search OR numeroControlePNCPCompra LIKE :search";
+    $whereClause = "WHERE descricao LIKE :search OR numero LIKE :search OR numeroControlePNCPCompra LIKE :search OR uf LIKE :search";
     $params[':search'] = "%$search%";
 }
 
@@ -285,21 +285,19 @@ $itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
         <div class="table-container">
             <?php if (count($itens) > 0): ?>
                 <table>
-                    <thead>
-                        <tr>
+                    <thead>                        <tr>
                             <th>ID</th>
                             <th>Nº Item</th>
                             <th>Descrição</th>
                             <th>Quantidade</th>
                             <th>Valor Unitário</th>
-                            <th>Valor Total</th>                            <th>Órgão</th>
-                            <th>Nº Controle</th>
-                            <th>Data Inclusão</th>
+                            <th>Valor Total</th>
+                            <th>UF</th>
+                            <th>Nº Controle Compra</th>
                             <th>Edital</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        <?php foreach ($itens as $item): ?>
+                    <tbody>                        <?php foreach ($itens as $item): ?>
                             <tr>
                                 <td><?php echo $item['id']; ?></td>
                                 <td><?php echo htmlspecialchars($item['numero']); ?></td>
@@ -307,17 +305,9 @@ $itens = $stmt->fetchAll(PDO::FETCH_ASSOC);
                                 <td><?php echo htmlspecialchars($item['quantidade']); ?></td>
                                 <td class="valor"><?php echo htmlspecialchars($item['valor_unitario']); ?></td>
                                 <td class="valor"><?php echo htmlspecialchars($item['valor_total']); ?></td>
-                                <td class="orgao">
-                                    <?php echo htmlspecialchars($item['nomeOrgao']); ?>
-                                </td>
+                                <td><?php echo htmlspecialchars($item['uf']); ?></td>
                                 <td>
                                     <small><?php echo htmlspecialchars($item['numeroControlePNCPCompra']); ?></small>
-                                </td>                                <td>
-                                    <?php 
-                                    if ($item['dataInclusao']) {
-                                        echo date('d/m/Y', strtotime($item['dataInclusao']));
-                                    }
-                                    ?>
                                 </td>
                                 <td>
                                     <?php 
