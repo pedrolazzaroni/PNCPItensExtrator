@@ -12,7 +12,7 @@
 
 ## 📋 Descrição
 
-O **PNCP Itens Extractor** é uma suíte completa de ferramentas desenvolvida para automatizar a extração, armazenamento e visualização de informações detalhadas de itens de editais/atas de licitação do Portal Nacional de Contratações Públicas (PNCP).
+O **PNCP Itens Extrator** é uma suíte completa de ferramentas desenvolvida para automatizar a extração, armazenamento e visualização de informações detalhadas de itens de editais/atas de licitação do Portal Nacional de Contratações Públicas (PNCP).
 
 ### 🎯 **Sistema Integrado Completo:**
 - **🤖 Extração Automatizada**: Scripts Python com Selenium WebDriver
@@ -26,9 +26,9 @@ O **PNCP Itens Extractor** é uma suíte completa de ferramentas desenvolvida pa
 - ✅ Quantidade especificada
 - ✅ Valor unitário estimado
 - ✅ Valor total estimado
-- ✅ Informações do órgão licitante
-- ✅ Dados completos da ata/edital
-- ✅ Datas de inclusão e atualização
+- ✅ UF (Unidade Federativa) - NOVO!
+- ✅ Número de controle da Ata PNCP
+- ✅ Número de controle da Compra PNCP
 
 ## 🌟 Funcionalidades Principais
 
@@ -62,10 +62,11 @@ O **PNCP Itens Extractor** é uma suíte completa de ferramentas desenvolvida pa
 
 ```
 PNCPItensExtrator/
-├── 📄 extrai_itens_pncp.py      # 🚀 Versão dev - versão de testes e desenvolvimento
+├── 📄 extrai_itens_pncp.py      # 🚀 Script principal de desenvolvimento (versão atual em desenvolvimento)
 ├── 📄 ExtratorV1.py             # 📚 Versão básica (apenas primeira página)
 ├── 📄 ExtratorV2.py             # 🔄 Versão com paginação completa
-├── 📄 ExtratorV3.py             # ⚡ Versão atual - Extrator com filtro por data
+├── 📄 ExtratorV3.py             # ⚙️ Versão com todos os campos da ata (29 campos)
+├── 📄 ExtratorV4.py             # ⚡ Versão atual otimizada - Com extração de UF e campos essenciais
 ├── 🌐 index.php                 # 💻 Interface web para visualização
 ├── 📖 README.md                 # 📋 Documentação completa
 └── 🗂️ docs/                     # 📚 Documentação adicional
@@ -73,17 +74,28 @@ PNCPItensExtrator/
 
 ## 🎯 Versões Disponíveis
 
-### 🚀 **ExtratorV3 (Versão Atual)**
+### 🚀 **ExtratorV4 (Versão Atual Recomendada)**
 **Funcionalidades:**
 - ✅ Filtro por data de inclusão das atas
 - ✅ Ordenação cronológica (mais antigas primeiro)
-- ✅ Campos completos da ata (29 campos)
+- ✅ **Extração automática de UF** - NOVO!
+- ✅ Campos essenciais otimizados (9 campos)
 - ✅ Paginação inteligente
 - ✅ Validação de dados de entrada
-- ✅ Todos os campos da ata incluídos nos itens
+- ✅ Estrutura de dados limpa e eficiente
+- ✅ Múltiplos métodos de extração de UF com fallbacks
+
+**Ideal para:** Produção - Extração incremental e uso diário
+
+### ⚙️ **ExtratorV3.py**
+**Funcionalidades:**
+- ✅ Filtro por data de inclusão
+- ✅ Ordenação cronológica
+- ✅ Campos completos da ata (29 campos)
+- ✅ Validação de entrada
 - ✅ Estrutura de dados expandida
 
-**Ideal para:** Extração incremental e atualização periódica
+**Ideal para:** Análise completa com todos os dados das atas
 
 ### 🔄 **ExtratorV2.py**
 **Funcionalidades:**
@@ -114,7 +126,7 @@ PNCPItensExtrator/
 - **Campos Pesquisáveis:**
   - 📝 Descrição do item
   - 🔢 Número do item
-  - 🏛️ Nome do órgão
+  - 🌍 UF (Unidade Federativa)
   - 📋 Número de controle PNCP
 - **Busca em Tempo Real**: Resultados instantâneos
 - **Filtros Dinâmicos**: Limpeza rápida dos filtros
@@ -130,9 +142,8 @@ PNCPItensExtrator/
   - 📊 Quantidade
   - 💰 Valor unitário
   - 💰 Valor total
-  - 🏛️ Órgão responsável
+  - 🌍 UF (Unidade Federativa)
   - 📋 Número de controle
-  - 📅 Data de inclusão
   - 🔗 Link para edital
 
 ### 🔗 **Integração PNCP Direta**
@@ -212,7 +223,7 @@ CREATE TABLE atas_pncp (
 
 ### 3. Tabela de Itens (Criada Automaticamente)
 
-A tabela `atas_itens_pncp` é criada automaticamente pelo script com 29 campos completos:
+A tabela `atas_itens_pncp` é criada automaticamente pelo script com campos essenciais otimizados:
 
 ```sql
 CREATE TABLE atas_itens_pncp (
@@ -223,7 +234,9 @@ CREATE TABLE atas_itens_pncp (
     quantidade VARCHAR(20),
     valor_unitario VARCHAR(50),
     valor_total VARCHAR(50),
-    -- ... mais 22 campos da ata original
+    uf VARCHAR(2),
+    numeroControlePNCPAta VARCHAR(100),
+    numeroControlePNCPCompra VARCHAR(100)
 );
 ```
 
@@ -240,11 +253,12 @@ CREATE TABLE atas_itens_pncp (
 
 #### Versão Atual (Recomendada)
 ```bash
-python ExtratorV3.py
+python ExtratorV4.py
 ```
 - Digite a data inicial (ex: 2024-05-25)
 - O sistema busca atas inseridas após essa data
 - Processamento em ordem cronológica
+- Extração automática de UF
 
 #### Versão V2 (Paginação Completa)
 ```bash
@@ -279,23 +293,26 @@ INSERT INTO atas_pncp (numeroControlePNCPCompra, dataInclusao) VALUES
 Digite a data de inclusão inicial (formato YYYY-MM-DD, ex: 2024-05-25): 2024-05-25
 Buscando atas com dataInclusao posterior a 2024-05-25 (depois das 23:59:59)...
 Acessando URL: https://pncp.gov.br/app/editais/01612781000138/2022/21
+Iniciando extração da UF...
+Método 1: Procurando spans com ng-star-inserted que contêm barra...
+UF encontrada pelo Método 1: 'MG'
 Procurando aba 'Itens'...
 Botão da aba 'Itens' encontrado. Clicando...
 Tabela de itens encontrada.
 Total de itens na tabela: 160
 Coletando página, linhas encontradas: 5
-Item encontrado: {'numero': '1', 'descricao': 'Agenda executiva...', 'quantidade': '100', 'valor_unitario': 'R$ 33,28', 'valor_total': 'R$ 3.328,00'}
+Item encontrado: {'numero': '1', 'descricao': 'Agenda executiva...', 'quantidade': '100', 'valor_unitario': 'R$ 33,28', 'valor_total': 'R$ 3.328,00', 'uf': 'MG'}
 Página: exibindo 1-5 de 160 itens
 Tentando clicar no botão próxima página...
 Página avançou para: 6-10 de 160 itens
 ...
-Item extraído: Número: 1, Descrição: Agenda executiva..., Quantidade: 100, Valor Unitário: R$ 33,28, Valor Total: R$ 3.328,00
+Item extraído: Número: 1, Descrição: Agenda executiva..., Quantidade: 100, Valor Unitário: R$ 33,28, Valor Total: R$ 3.328,00, UF: MG
 ```
 
 ### 📊 Dados Salvos no Banco
 
 ```sql
-SELECT numero, descricao, quantidade, valor_unitario, valor_total, nomeOrgao, dataInclusao 
+SELECT numero, descricao, quantidade, valor_unitario, valor_total, uf, numeroControlePNCPCompra 
 FROM atas_itens_pncp 
 LIMIT 5;
 ```
@@ -345,6 +362,13 @@ Onde:
 - **Verificação de Estado**: Confirma se a página avançou
 - **Timeout Inteligente**: Para quando todos os itens foram coletados
 
+### 🌍 Sistema de Extração de UF
+
+- **Múltiplos Métodos**: 4 estratégias diferentes para encontrar a UF
+- **Fallback Inteligente**: Se um método falha, tenta o próximo
+- **Validação**: Verifica se a UF encontrada é válida (estados brasileiros)
+- **Debug Avançado**: Logs detalhados para solução de problemas
+
 ### 🛡️ Tratamento de Erros
 
 - **Retry Logic**: Tenta novamente em caso de falha
@@ -393,12 +417,20 @@ WebDriverWait(driver, 30)  # 30 segundos
 
 ## 📋 Versões e Changelog
 
-### 🚀 **Versão Atual (ExtratorV3.py)**
+### 🚀 **Versão Atual (ExtratorV4.py)**
 - ✅ Filtro por data de inclusão
 - ✅ Ordenação cronológica
-- ✅ 29 campos completos
+- ✅ **Extração automática de UF**
+- ✅ Campos essenciais otimizados (9 campos)
 - ✅ Validação de entrada
 - ✅ Tratamento robusto de erros
+- ✅ Múltiplos métodos de extração de UF
+
+### ⚙️ **V3 (ExtratorV3.py)**
+- ➕ Filtro por data de inclusão
+- ➕ Ordenação cronológica
+- ➕ 29 campos completos
+- ➕ Validação de entrada
 
 ### 🔄 **V2 (ExtratorV2.py)**
 - ➕ Paginação completa
