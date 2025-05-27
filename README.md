@@ -1,4 +1,4 @@
-# 🚀 PNCP Itens Extractor - Sistema Completo
+# 🚀 PNCP Itens Extrator - Sistema Completo
 
 <div align="center">
 
