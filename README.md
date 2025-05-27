@@ -68,8 +68,7 @@ PNCPItensExtrator/
 ├── 📄 ExtratorV3.py             # ⚙️ Versão com todos os campos da ata (29 campos)
 ├── 📄 ExtratorV4.py             # ⚡ Versão atual otimizada - Com extração de UF e campos essenciais
 ├── 🌐 index.php                 # 💻 Interface web para visualização
-├── 📖 README.md                 # 📋 Documentação completa
-└── 🗂️ docs/                     # 📚 Documentação adicional
+└── 📖 README.md                 # 📋 Documentação completa
 ```
 
 ## 🎯 Versões Disponíveis
